@@ -63,14 +63,17 @@ public extension UIView {
                     item.shadowColor = colors.darkShadow.resolvedColor(with: self.traitCollection).cgColor
                 }
             }
-            // A press-settle delay stays async; everything else (trait change, reuse,
-            // drag-out) repaints synchronously so the new shadow colors are in place from
-            // the first frame of an appearance change — otherwise the dark-mode shadows
-            // linger over the new background for a beat.
             if delay > 0 {
+                // Button press-settle.
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: repaint)
             } else {
+                // Repaint now so an appearance change shows the right shadow from its
+                // first frame (no dark-mode flash over the new background), then once
+                // more next run loop as a safety net — if the trait collection wasn't
+                // fully settled at call time, a view with no other refresh trigger would
+                // otherwise stay stuck on the previous mode's shadow colors.
                 repaint()
+                DispatchQueue.main.async(execute: repaint)
             }
         }
     }
