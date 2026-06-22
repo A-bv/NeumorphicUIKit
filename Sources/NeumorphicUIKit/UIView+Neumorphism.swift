@@ -53,7 +53,7 @@ public extension UIView {
                 item.shadowColor = colors.lightShadow.resolvedColor(with: traitCollection).cgColor
             }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            let repaint = {
                 for item in self.layer.sublayers ?? [] where item.name == "lightShadow" {
                     item.backgroundColor = colors.surface.resolvedColor(with: self.traitCollection).cgColor
                     item.shadowColor = colors.lightShadow.resolvedColor(with: self.traitCollection).cgColor
@@ -62,6 +62,15 @@ public extension UIView {
                     item.backgroundColor = colors.surface.resolvedColor(with: self.traitCollection).cgColor
                     item.shadowColor = colors.darkShadow.resolvedColor(with: self.traitCollection).cgColor
                 }
+            }
+            // A press-settle delay stays async; everything else (trait change, reuse,
+            // drag-out) repaints synchronously so the new shadow colors are in place from
+            // the first frame of an appearance change — otherwise the dark-mode shadows
+            // linger over the new background for a beat.
+            if delay > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: repaint)
+            } else {
+                repaint()
             }
         }
     }
