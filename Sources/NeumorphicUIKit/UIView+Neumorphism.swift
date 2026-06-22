@@ -2,8 +2,10 @@ import UIKit
 
 public extension UIView {
     /// Lays the two offset shadow layers that create the neumorphic "raised" look.
-    func neumorphism(cornerRadius: CGFloat, shadowRadius: CGFloat) {
+    /// `cornerRadius` defaults to the view's own `layer.cornerRadius`.
+    func neumorphism(cornerRadius: CGFloat? = nil, shadowRadius: CGFloat = 5) {
         let colors = Neumorphism.colors
+        let corner = cornerRadius ?? layer.cornerRadius
 
         // ------------ DARK layer
         let darkShadow = CALayer()
@@ -11,7 +13,7 @@ public extension UIView {
         darkShadow.name = "darkShadow"
         darkShadow.backgroundColor = colors.surface.cgColor
         darkShadow.shadowColor = colors.darkShadow.cgColor
-        darkShadow.cornerRadius = cornerRadius
+        darkShadow.cornerRadius = corner
         darkShadow.shadowOpacity = 1
         darkShadow.shadowRadius = shadowRadius
         darkShadow.shadowOffset = CGSize(width: shadowRadius, height: shadowRadius)
@@ -24,7 +26,7 @@ public extension UIView {
         lightShadow.frame = layer.bounds
         lightShadow.backgroundColor = colors.surface.cgColor
         lightShadow.shadowColor = colors.lightShadow.cgColor
-        lightShadow.cornerRadius = cornerRadius
+        lightShadow.cornerRadius = corner
         lightShadow.shadowOpacity = 1
         lightShadow.shadowRadius = shadowRadius
         lightShadow.shadowOffset = CGSize(width: -shadowRadius, height: -shadowRadius)
