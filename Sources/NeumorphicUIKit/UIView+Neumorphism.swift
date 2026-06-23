@@ -1,80 +1,81 @@
 import UIKit
 
 public extension UIView {
-    /// Lays the two offset shadow layers that create the neumorphic "raised" look.
-    /// `cornerRadius` defaults to the view's own `layer.cornerRadius`.
+    /// Adds the two offset shadow layers that create the neumorphic "raised" look and
+    /// keeps them correct on their own: they repaint automatically on a light/dark change
+    /// (iOS 17+) and re-sync to the view's bounds whenever they repaint. `cornerRadius`
+    /// defaults to the view's own `layer.cornerRadius`.
     func neumorphism(cornerRadius: CGFloat? = nil, shadowRadius: CGFloat = 5) {
-        let colors = Neumorphism.colors
         let corner = cornerRadius ?? layer.cornerRadius
-
-        // ------------ DARK layer
-        let darkShadow = CALayer()
-        darkShadow.frame = layer.bounds
-        darkShadow.name = "darkShadow"
-        darkShadow.backgroundColor = colors.surface.cgColor
-        darkShadow.shadowColor = colors.darkShadow.cgColor
-        darkShadow.cornerRadius = corner
-        darkShadow.shadowOpacity = 1
-        darkShadow.shadowRadius = shadowRadius
-        darkShadow.shadowOffset = CGSize(width: shadowRadius, height: shadowRadius)
-        darkShadow.shadowPerformanceBoost()
-        layer.insertSublayer(darkShadow, at: 0)
-
-        // ------------ LIGHT layer
-        let lightShadow = CALayer()
-        lightShadow.name = "lightShadow"
-        lightShadow.frame = layer.bounds
-        lightShadow.backgroundColor = colors.surface.cgColor
-        lightShadow.shadowColor = colors.lightShadow.cgColor
-        lightShadow.cornerRadius = corner
-        lightShadow.shadowOpacity = 1
-        lightShadow.shadowRadius = shadowRadius
-        lightShadow.shadowOffset = CGSize(width: -shadowRadius, height: -shadowRadius)
-        lightShadow.shadowPerformanceBoost()
-        layer.insertSublayer(lightShadow, at: 0)
+        for (name, direction) in [("darkShadow", CGFloat(1)), ("lightShadow", CGFloat(-1))] {
+            let shadow = CALayer()
+            shadow.name = name
+            shadow.frame = layer.bounds
+            shadow.cornerRadius = corner
+            shadow.shadowOpacity = 1
+            shadow.shadowRadius = shadowRadius
+            shadow.shadowOffset = CGSize(width: direction * shadowRadius, height: direction * shadowRadius)
+            shadow.shadowPerformanceBoost()
+            layer.insertSublayer(shadow, at: 0)
+        }
+        applyRestingShadows()
+        observeAppearanceChanges()
     }
 
-    /// Refreshes the two shadow layers. Pass `isButtonViewHeld` for the pressed
-    /// look; `updateAfterShortDelay` lets a press settle before restoring.
-    func addNeumorphicShadows(isButtonViewHeld: Bool = false, updateAfterShortDelay: Bool = false) {
+    /// Pressed (inset) look — call on touch-down.
+    func pressDown() {
         let colors = Neumorphism.colors
         let isDark = traitCollection.userInterfaceStyle == .dark
-        let delay: Double = updateAfterShortDelay ? 0.2 : 0
+        if let light = sublayer(named: "lightShadow") {
+            light.backgroundColor = colors.darkShadow.resolvedColor(with: traitCollection).cgColor
+            light.shadowColor = (isDark ? colors.darkShadow : colors.darkShadow.withAlphaComponent(0.5))
+                .resolvedColor(with: traitCollection).cgColor
+        }
+        if let down = sublayer(named: "darkShadow") {
+            down.backgroundColor = colors.bottom.resolvedColor(with: traitCollection).cgColor
+            down.shadowColor = colors.lightShadow.resolvedColor(with: traitCollection).cgColor
+        }
+    }
 
-        if isButtonViewHeld {
-            for item in layer.sublayers ?? [] where item.name == "lightShadow" {
-                item.backgroundColor = colors.darkShadow.resolvedColor(with: traitCollection).cgColor
-                item.shadowColor = isDark
-                    ? colors.darkShadow.resolvedColor(with: traitCollection).cgColor
-                    : colors.darkShadow.withAlphaComponent(0.50).resolvedColor(with: traitCollection).cgColor
-            }
-            for item in layer.sublayers ?? [] where item.name == "darkShadow" {
-                item.backgroundColor = colors.bottom.resolvedColor(with: traitCollection).cgColor
-                item.shadowColor = colors.lightShadow.resolvedColor(with: traitCollection).cgColor
-            }
-        } else {
-            let repaint = {
-                for item in self.layer.sublayers ?? [] where item.name == "lightShadow" {
-                    item.backgroundColor = colors.surface.resolvedColor(with: self.traitCollection).cgColor
-                    item.shadowColor = colors.lightShadow.resolvedColor(with: self.traitCollection).cgColor
-                }
-                for item in self.layer.sublayers ?? [] where item.name == "darkShadow" {
-                    item.backgroundColor = colors.surface.resolvedColor(with: self.traitCollection).cgColor
-                    item.shadowColor = colors.darkShadow.resolvedColor(with: self.traitCollection).cgColor
-                }
-            }
-            if delay > 0 {
-                // Button press-settle.
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: repaint)
-            } else {
-                // Repaint now so an appearance change shows the right shadow from its
-                // first frame (no dark-mode flash over the new background), then once
-                // more next run loop as a safety net — if the trait collection wasn't
-                // fully settled at call time, a view with no other refresh trigger would
-                // otherwise stay stuck on the previous mode's shadow colors.
-                repaint()
-                DispatchQueue.main.async(execute: repaint)
-            }
+    /// Resting (raised) look — call on touch-up. `settle` holds the pressed look for a
+    /// beat first, so a quick tap stays visible.
+    func pressUp(settle: Bool = false) {
+        guard settle else { return applyRestingShadows() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.applyRestingShadows()
+        }
+    }
+
+    /// Repaints the resting shadows for the current appearance. Happens automatically on
+    /// iOS 17+; on earlier systems call this from the host's `traitCollectionDidChange`.
+    func refreshNeumorphicShadows() {
+        applyRestingShadows()
+    }
+}
+
+private extension UIView {
+    func applyRestingShadows() {
+        let colors = Neumorphism.colors
+        for name in ["lightShadow", "darkShadow"] {
+            guard let shadow = sublayer(named: name) else { continue }
+            shadow.frame = layer.bounds
+            shadow.backgroundColor = colors.surface.resolvedColor(with: traitCollection).cgColor
+            shadow.shadowColor = (name == "lightShadow" ? colors.lightShadow : colors.darkShadow)
+                .resolvedColor(with: traitCollection).cgColor
+        }
+    }
+
+    func sublayer(named name: String) -> CALayer? {
+        (layer.sublayers ?? []).first { $0.name == name }
+    }
+
+    /// Registers the view to repaint itself on a light/dark change. Registering on the
+    /// shadowed view (not a parent) means its own `traitCollection` is already settled when
+    /// the closure runs, so the repaint is correct synchronously — no deferred work needed.
+    func observeAppearanceChanges() {
+        guard #available(iOS 17, *) else { return }
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in
+            view.refreshNeumorphicShadows()
         }
     }
 }

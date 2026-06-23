@@ -13,21 +13,47 @@ struct NeumorphicUIKitTests {
         #expect(names.contains("lightShadow"))
     }
 
-    @Test func addNeumorphicShadowsRepaintsSynchronously() {
+    @Test func refreshRepaintsShadowsSynchronously() {
         Neumorphism.configure(NeumorphicColors(
             surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
         let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
         view.neumorphism(cornerRadius: 10, shadowRadius: 5)
 
-        // Re-inject a new light-shadow colour, then refresh. The repaint must land
-        // synchronously (no async hop), so an appearance change shows the right shadow
-        // from its first frame instead of lingering on the old colour.
+        // Re-inject a new light-shadow colour, then refresh — the repaint lands
+        // synchronously, so an appearance change shows the right shadow immediately.
         Neumorphism.configure(NeumorphicColors(
             surface: .white, darkShadow: .gray, lightShadow: .green, bottom: .black))
-        view.addNeumorphicShadows()
+        view.refreshNeumorphicShadows()
 
-        let lightShadow = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
-        #expect(lightShadow?.shadowColor == UIColor.green.resolvedColor(with: view.traitCollection).cgColor)
+        let light = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
+        #expect(light?.shadowColor == UIColor.green.resolvedColor(with: view.traitCollection).cgColor)
+    }
+
+    @Test func pressTogglesBetweenPressedAndRestingFills() {
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+        func lightFill() -> CGColor? {
+            (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }?.backgroundColor
+        }
+
+        view.pressDown()
+        #expect(lightFill() == UIColor.gray.resolvedColor(with: view.traitCollection).cgColor)
+
+        view.pressUp()
+        #expect(lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor)
+    }
+
+    @Test func refreshResyncsShadowFrameToBounds() {
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+
+        view.bounds = CGRect(x: 0, y: 0, width: 120, height: 120)
+        view.refreshNeumorphicShadows()
+
+        let light = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
+        #expect(light?.frame.size == CGSize(width: 120, height: 120))
     }
 
     @Test func configureStoresTheInjectedPalette() {
