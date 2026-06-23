@@ -3,8 +3,9 @@ import UIKit
 public extension UIView {
     /// Adds the two offset shadow layers that create the neumorphic "raised" look and
     /// keeps them correct on their own: they repaint automatically on a light/dark change
-    /// (iOS 17+) and re-sync to the view's bounds whenever they repaint. `cornerRadius`
-    /// defaults to the view's own `layer.cornerRadius`.
+    /// (iOS 17+), with no further calls from the host. The shadow keeps the size it's
+    /// created at, so set the view's frame before calling. `cornerRadius` defaults to the
+    /// view's own `layer.cornerRadius`.
     func neumorphism(cornerRadius: CGFloat? = nil, shadowRadius: CGFloat = 5) {
         let corner = cornerRadius ?? layer.cornerRadius
         for (name, direction) in [("darkShadow", CGFloat(1)), ("lightShadow", CGFloat(-1))] {
@@ -58,7 +59,6 @@ private extension UIView {
         let colors = Neumorphism.colors
         for name in ["lightShadow", "darkShadow"] {
             guard let shadow = sublayer(named: name) else { continue }
-            shadow.frame = layer.bounds
             shadow.backgroundColor = colors.surface.resolvedColor(with: traitCollection).cgColor
             shadow.shadowColor = (name == "lightShadow" ? colors.lightShadow : colors.darkShadow)
                 .resolvedColor(with: traitCollection).cgColor
