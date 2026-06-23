@@ -27,11 +27,17 @@ Neumorphism.configure(NeumorphicColors(
     lightShadow: .myLightShadow,
     bottom: .myBottom))
 ```
-Raise a view, and refresh it on press or trait change:
+Raise a view — it then repaints itself on a light/dark change (iOS 17+) and re-syncs to
+its bounds, with no further calls:
 ```swift
 card.neumorphism(cornerRadius: 16, shadowRadius: 6)
-button.addNeumorphicShadows(isButtonViewHeld: isPressed)
 ```
-Pass dynamic `UIColor`s (light/dark variants) and dark mode is handled automatically.
+For a tappable control, drive the pressed look from its touch events:
+```swift
+button.addTarget(self, action: #selector(down), for: .touchDown)        // pressDown()
+button.addTarget(self, action: #selector(up), for: .touchUpInside)      // pressUp(settle: true)
+```
+Pass dynamic `UIColor`s (light/dark variants) and dark mode is handled automatically. On
+iOS 15–16 call `refreshNeumorphicShadows()` from the host's `traitCollectionDidChange`.
 
 > Set the palette before any styled view appears — e.g. in `application(_:didFinishLaunchingWithOptions:)`. Xcode previews must call `configure` themselves; the bundled preview shows how.
