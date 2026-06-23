@@ -45,15 +45,17 @@ struct NeumorphicUIKitTests {
         #expect(lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor)
     }
 
-    @Test func refreshResyncsShadowFrameToBounds() {
+    @Test func refreshKeepsShadowSizeWhenBoundsCollapse() {
         let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
         view.neumorphism()
 
-        view.bounds = CGRect(x: 0, y: 0, width: 120, height: 120)
+        // A view sized by a fixed frame (not constraints) can report zero bounds after
+        // layout — the shadow must keep its created size through a repaint, not vanish.
+        view.bounds = .zero
         view.refreshNeumorphicShadows()
 
         let light = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
-        #expect(light?.frame.size == CGSize(width: 120, height: 120))
+        #expect(light?.frame.size == CGSize(width: 80, height: 80))
     }
 
     @Test func configureStoresTheInjectedPalette() {

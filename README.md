@@ -27,8 +27,8 @@ Neumorphism.configure(NeumorphicColors(
     lightShadow: .myLightShadow,
     bottom: .myBottom))
 ```
-Raise a view — it then repaints itself on a light/dark change (iOS 17+) and re-syncs to
-its bounds, with no further calls:
+Raise a view — it then repaints itself on a light/dark change (iOS 17+) with no further
+calls (the shadow keeps the size it's created at, so set the frame first):
 ```swift
 card.neumorphism(cornerRadius: 16, shadowRadius: 6)
 ```
