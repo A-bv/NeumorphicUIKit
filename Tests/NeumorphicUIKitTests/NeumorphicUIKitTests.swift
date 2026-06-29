@@ -58,6 +58,19 @@ struct NeumorphicUIKitTests {
         #expect(light?.frame.size == CGSize(width: 80, height: 80))
     }
 
+    @Test func resizeUpdatesShadowFrameAndCornerToBounds() {
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 44))
+        view.neumorphism(cornerRadius: 22)
+
+        // The view grows (as a Dynamic Type control would); resizing must follow.
+        view.bounds = CGRect(x: 0, y: 0, width: 120, height: 70)
+        view.resizeNeumorphicShadows(cornerRadius: 35)
+
+        let dark = (view.layer.sublayers ?? []).first { $0.name == "darkShadow" }
+        #expect(dark?.frame.size == CGSize(width: 120, height: 70))
+        #expect(dark?.cornerRadius == 35)
+    }
+
     @Test func configureStoresTheInjectedPalette() {
         Neumorphism.configure(NeumorphicColors(
             surface: .red, darkShadow: .green, lightShadow: .blue, bottom: .black))
