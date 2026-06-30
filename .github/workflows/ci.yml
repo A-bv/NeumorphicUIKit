@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # The package targets UIKit, so it must build and test against an iOS
+      # Simulator destination rather than the host macOS toolchain.
+      - name: Build and test (iOS Simulator)
+        run: |
+          xcodebuild test \
+            -scheme NeumorphicUIKit \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest'
