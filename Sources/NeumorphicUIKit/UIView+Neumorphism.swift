@@ -7,6 +7,11 @@ public extension UIView {
     /// created at, so set the view's frame before calling. `cornerRadius` defaults to the
     /// view's own `layer.cornerRadius`.
     func neumorphism(cornerRadius: CGFloat? = nil, shadowRadius: CGFloat = 5) {
+        // Re-styling a view (or a reused cell) should replace its shadows, not stack a
+        // second pair on top of the first.
+        for name in ["lightShadow", "darkShadow"] {
+            sublayer(named: name)?.removeFromSuperlayer()
+        }
         let corner = cornerRadius ?? layer.cornerRadius
         for (name, direction) in [("darkShadow", CGFloat(1)), ("lightShadow", CGFloat(-1))] {
             let shadow = CALayer()
@@ -16,7 +21,7 @@ public extension UIView {
             shadow.shadowOpacity = 1
             shadow.shadowRadius = shadowRadius
             shadow.shadowOffset = CGSize(width: direction * shadowRadius, height: direction * shadowRadius)
-            shadow.shadowPerformanceBoost()
+            shadow.shadowPerformanceBoost(scale: traitCollection.displayScale)
             layer.insertSublayer(shadow, at: 0)
         }
         applyRestingShadows()
@@ -25,8 +30,12 @@ public extension UIView {
 
     /// Pressed (inset) look — call on touch-down.
     func pressDown() {
+        cancelPendingSettle()
         let colors = Neumorphism.colors
         let isDark = traitCollection.userInterfaceStyle == .dark
+        // These are drop shadows, not inner shadows, so the inset look is faked by recoloring:
+        // each layer is filled with the *opposite* tone of its name and casts the opposite
+        // shadow. Hence "lightShadow" takes the dark fill here and vice-versa.
         if let light = sublayer(named: "lightShadow") {
             light.backgroundColor = colors.darkShadow.resolvedColor(with: traitCollection).cgColor
             light.shadowColor = (isDark ? colors.darkShadow : colors.darkShadow.withAlphaComponent(0.5))
@@ -41,10 +50,14 @@ public extension UIView {
     /// Resting (raised) look — call on touch-up. `settle` holds the pressed look for a
     /// beat first, so a quick tap stays visible.
     func pressUp(settle: Bool = false) {
+        cancelPendingSettle()
         guard settle else { return applyRestingShadows() }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+        let work = DispatchWorkItem { [weak self] in
+            self?.pendingSettle = nil
             self?.applyRestingShadows()
         }
+        pendingSettle = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 
     /// Repaints the resting shadows for the current appearance. Happens automatically on
@@ -67,6 +80,23 @@ public extension UIView {
 }
 
 private extension UIView {
+    // Stable, unique key for the per-view pending-settle work item. A `static let` pointer
+    // sidesteps the mutable-static concerns of the `&someVar` associated-object idiom.
+    static let pendingSettleKey = malloc(1)!
+
+    /// The not-yet-fired `pressUp(settle:)` work item, if any.
+    var pendingSettle: DispatchWorkItem? {
+        get { objc_getAssociatedObject(self, UIView.pendingSettleKey) as? DispatchWorkItem }
+        set { objc_setAssociatedObject(self, UIView.pendingSettleKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
+    /// Cancels a queued settle so a fresh press (or an immediate resting flip) isn't
+    /// clobbered when the old timer fires.
+    func cancelPendingSettle() {
+        pendingSettle?.cancel()
+        pendingSettle = nil
+    }
+
     func applyRestingShadows() {
         let colors = Neumorphism.colors
         for name in ["lightShadow", "darkShadow"] {

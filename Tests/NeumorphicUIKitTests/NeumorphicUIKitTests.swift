@@ -2,6 +2,9 @@ import Testing
 import UIKit
 @testable import NeumorphicUIKit
 
+// Serialized because every test shares the `Neumorphism.colors` singleton; running them in
+// parallel lets one test's `configure` race into another's assertions.
+@Suite(.serialized)
 @MainActor
 struct NeumorphicUIKitTests {
     @Test func neumorphismInsertsTheTwoNamedShadowLayers() {
@@ -69,6 +72,36 @@ struct NeumorphicUIKitTests {
         let dark = (view.layer.sublayers ?? []).first { $0.name == "darkShadow" }
         #expect(dark?.frame.size == CGSize(width: 120, height: 70))
         #expect(dark?.cornerRadius == 35)
+    }
+
+    @Test func neumorphismIsIdempotentAndDoesNotStackLayers() {
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+        view.neumorphism()
+
+        let shadows = (view.layer.sublayers ?? []).filter {
+            $0.name == "lightShadow" || $0.name == "darkShadow"
+        }
+        #expect(shadows.count == 2)
+    }
+
+    @Test func settleHoldsThePressedLookThenSettlesToResting() async {
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+        func lightFill() -> CGColor? {
+            (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }?.backgroundColor
+        }
+
+        view.pressDown()
+        view.pressUp(settle: true)
+        // Still pressed right after touch-up...
+        #expect(lightFill() == UIColor.gray.resolvedColor(with: view.traitCollection).cgColor)
+
+        // ...and settled to resting once the hold elapses.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        #expect(lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor)
     }
 
     @Test func configureStoresTheInjectedPalette() {
