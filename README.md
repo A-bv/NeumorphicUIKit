@@ -49,6 +49,9 @@ card.neumorphism(cornerRadius: 16, shadowRadius: 6)
 >     card.resizeNeumorphicShadows()
 > }
 > ```
+> The shadows are rasterized for scroll performance, so `resizeNeumorphicShadows()`
+> is meant for discrete layout passes — not for resizing the view on every frame of
+> an animation, which would rebuild the cached bitmap each frame.
 For a tappable control, drive the pressed look from its touch events:
 ```swift
 button.addTarget(self, action: #selector(down), for: .touchDown)        // pressDown()
