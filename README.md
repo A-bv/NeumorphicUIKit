@@ -9,6 +9,10 @@ Drop-in neumorphic depth for any `UIView` — with your colors, not ours.
 
 NeumorphicUIKit renders the soft, two-light-source "raised" surface on UIKit views and keeps it correct through presses and light/dark switches. It carries no palette of its own: you inject your app's colors once, so it never clashes with your design system and the same build drops into any app.
 
+![Neumorphic raised tile and button](Docs/preview.svg)
+
+> The image above is an illustration of the raised surface. Swap in a screenshot or GIF from your own app to show it with your palette.
+
 ## Features
 - One call turns any `UIView` into a neumorphic surface.
 - Correct dual (light + dark) shadows, rasterized for smooth scrolling.
