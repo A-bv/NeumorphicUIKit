@@ -11,11 +11,14 @@ NeumorphicUIKit renders the soft, two-light-source "raised" surface on UIKit vie
 - Palette-agnostic — your colors, injected once.
 
 ## Requirements
-iOS 17 · Swift 5.9
+iOS 15 · Swift 5.9
+
+> Automatic light/dark repaint is built in on iOS 17+. On iOS 15–16, call
+> `refreshNeumorphicShadows()` from the host's `traitCollectionDidChange`.
 
 ## Installation
 ```swift
-.package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "1.0.0")
+.package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.0.0")
 ```
 
 ## Usage
@@ -27,11 +30,20 @@ Neumorphism.configure(NeumorphicColors(
     lightShadow: .myLightShadow,
     bottom: .myBottom))
 ```
-Raise a view — it then repaints itself on a light/dark change (iOS 17+) with no further
-calls (the shadow keeps the size it's created at, so set the frame first):
+Raise a view — it then repaints itself on a light/dark change (iOS 17+) with no further calls:
 ```swift
 card.neumorphism(cornerRadius: 16, shadowRadius: 6)
 ```
+> **Sizing:** the shadow is built at the view's current size. For a fixed-frame view that's
+> all you need. For a view that changes size — an Auto Layout view, or a control whose title
+> grows with Dynamic Type — keep the shadow matched to the view by calling
+> `resizeNeumorphicShadows()` from the host's `layoutSubviews` / `viewDidLayoutSubviews`:
+> ```swift
+> override func layoutSubviews() {
+>     super.layoutSubviews()
+>     card.resizeNeumorphicShadows()
+> }
+> ```
 For a tappable control, drive the pressed look from its touch events:
 ```swift
 button.addTarget(self, action: #selector(down), for: .touchDown)        // pressDown()
