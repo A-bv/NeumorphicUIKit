@@ -60,4 +60,4 @@ button.addTarget(self, action: #selector(up), for: .touchUpInside)      // press
 Pass dynamic `UIColor`s (light/dark variants) and dark mode is handled automatically. On
 iOS 15–16 call `refreshNeumorphicShadows()` from the host's `traitCollectionDidChange`.
 
-> Set the palette before any styled view appears — e.g. in `application(_:didFinishLaunchingWithOptions:)`. Xcode previews must call `configure` themselves; the bundled preview shows how.
+> Set the palette before any styled view appears — e.g. in `application(_:didFinishLaunchingWithOptions:)`. The palette is a single global: `configure` is last-wins, so call it once at launch rather than per screen. Xcode previews must call `configure` themselves; the bundled preview shows how.
