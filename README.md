@@ -1,5 +1,10 @@
 # NeumorphicUIKit
 
+[![Swift Package Manager](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![Platform](https://img.shields.io/badge/platform-iOS%2015%2B-blue.svg)](https://developer.apple.com/ios/)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
+
 Drop-in neumorphic depth for any `UIView` — with your colors, not ours.
 
 NeumorphicUIKit renders the soft, two-light-source "raised" surface on UIKit views and keeps it correct through presses and light/dark switches. It carries no palette of its own: you inject your app's colors once, so it never clashes with your design system and the same build drops into any app.
