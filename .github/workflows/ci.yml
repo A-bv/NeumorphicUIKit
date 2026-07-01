@@ -11,7 +11,7 @@ jobs:
     name: Build & Test
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Pick whatever iPhone simulator the runner actually provides, rather than
       # hard-coding a device name that a future runner image might not ship.
