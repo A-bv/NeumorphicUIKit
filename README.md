@@ -8,10 +8,7 @@
 Add a soft, "raised" neumorphic look to any UIKit view — cards, buttons, any
 control — using your own colors.
 
-![Neumorphic raised tile and button](Docs/preview.svg)
-
-> The image is an illustration. Swap in a screenshot from your own app to show
-> it with your palette.
+![NeumorphicUIKit demo: a raised card and button, a press, and an automatic light/dark switch](Docs/demo.gif)
 
 ## What it does
 - Styles any `UIView`, including buttons and other controls.
