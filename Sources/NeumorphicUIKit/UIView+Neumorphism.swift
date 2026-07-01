@@ -122,18 +122,23 @@ private extension UIView {
         (layer.sublayers ?? []).first { $0.name == name }
     }
 
-    /// Registers the view to repaint itself on a light/dark change. Registering on the
-    /// shadowed view (not a parent) means its own `traitCollection` is already settled when
-    /// the closure runs, so the repaint is correct synchronously — no deferred work needed.
+    /// Sets the view up to repaint itself on a light/dark change, so the host never has to.
+    /// On iOS 17+ this uses the trait-change API directly on the shadowed view; earlier
+    /// systems fall back to a helper subview that watches for the same change.
+    ///
+    /// Either way re-styling (e.g. a reused cell) replaces the existing watcher rather than
+    /// stacking a second one, so a light/dark switch repaints the view exactly once.
     func observeAppearanceChanges() {
-        guard #available(iOS 17, *) else { return }
-        // Re-styling (e.g. a reused cell) must replace the observer, not stack a second
-        // one on top — otherwise a light/dark switch fires the repaint once per restyle.
-        if let previous = traitRegistration as? UITraitChangeRegistration {
-            unregisterForTraitChanges(previous)
-        }
-        traitRegistration = registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in
-            view.refreshNeumorphicShadows()
+        if #available(iOS 17, *) {
+            if let previous = traitRegistration as? UITraitChangeRegistration {
+                unregisterForTraitChanges(previous)
+            }
+            traitRegistration = registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in
+                view.refreshNeumorphicShadows()
+            }
+        } else {
+            subviews.compactMap { $0 as? NeumorphicTraitObserver }.forEach { $0.removeFromSuperview() }
+            addSubview(NeumorphicTraitObserver())
         }
     }
 }

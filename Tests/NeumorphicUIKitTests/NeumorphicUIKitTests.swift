@@ -135,6 +135,40 @@ struct NeumorphicUIKitTests {
         #expect(darkShadowColor() == UIColor.green.cgColor)
     }
 
+    @Test func legacyHelperRepaintsHostWhenAppearanceChanges() {
+        // The pre-iOS 17 fallback. Red in light, green in dark.
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white,
+            darkShadow: UIColor { $0.userInterfaceStyle == .dark ? .green : .red },
+            lightShadow: .white,
+            bottom: .black))
+
+        // Give the host bare named shadow layers *without* neumorphism(), so no iOS 17
+        // observer exists and only the helper can drive the repaint.
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        window.overrideUserInterfaceStyle = .light
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        window.addSubview(host)
+        window.makeKeyAndVisible()
+        for name in ["lightShadow", "darkShadow"] {
+            let layer = CALayer()
+            layer.name = name
+            host.layer.addSublayer(layer)
+        }
+        host.refreshNeumorphicShadows()
+
+        host.addSubview(NeumorphicTraitObserver())
+
+        func darkShadowColor() -> CGColor? {
+            (host.layer.sublayers ?? []).first { $0.name == "darkShadow" }?.shadowColor
+        }
+        #expect(darkShadowColor() == UIColor.red.cgColor)
+
+        window.overrideUserInterfaceStyle = .dark
+        window.layoutIfNeeded()
+        #expect(darkShadowColor() == UIColor.green.cgColor)
+    }
+
     @Test func configureStoresTheInjectedPalette() {
         Neumorphism.configure(NeumorphicColors(
             surface: .red, darkShadow: .green, lightShadow: .blue, bottom: .black))
