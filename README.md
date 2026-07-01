@@ -1,55 +1,81 @@
 # NeumorphicUIKit
 
-Drop-in neumorphic depth for any `UIView` — with your colors, not ours.
+[![Swift Package Manager](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![Platform](https://img.shields.io/badge/platform-iOS%2015%2B-blue.svg)](https://developer.apple.com/ios/)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
-NeumorphicUIKit renders the soft, two-light-source "raised" surface on UIKit views and keeps it correct through presses and light/dark switches. It carries no palette of its own: you inject your app's colors once, so it never clashes with your design system and the same build drops into any app.
+Add a soft, "raised" neumorphic look to any UIKit view — cards, buttons, any
+control — using your own colors.
 
-## Features
-- One call turns any `UIView` into a neumorphic surface.
-- Correct dual (light + dark) shadows, rasterized for smooth scrolling.
-- Press and dark-mode refresh built in.
-- Palette-agnostic — your colors, injected once.
+![Neumorphic raised tile and button](Docs/preview.svg)
+
+> The image is an illustration. Swap in a screenshot from your own app to show
+> it with your palette.
+
+## What it does
+- Styles any `UIView`, including buttons and other controls.
+- Uses the colors you give it, so it matches your app.
+- Keeps itself correct when the user switches between light and dark mode.
+- Has a pressed look for buttons.
 
 ## Requirements
-iOS 15 · Swift 5.9
-
-> Automatic light/dark repaint is built in on iOS 17+. On iOS 15–16, call
-> `refreshNeumorphicShadows()` from the host's `traitCollectionDidChange`.
+iOS 15+ · Swift 5.9
 
 ## Installation
+In Xcode: **File → Add Package Dependencies…**, then paste:
+
+```
+https://github.com/A-bv/NeumorphicUIKit
+```
+
+Or add it to `Package.swift`:
+
 ```swift
 .package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.0.0")
 ```
 
 ## Usage
-Inject your palette once, at launch:
+Set your colors once, when the app starts (for example in the app delegate):
+
 ```swift
 Neumorphism.configure(NeumorphicColors(
-    surface: .myBackground,
-    darkShadow: .myDarkShadow,
-    lightShadow: .myLightShadow,
-    bottom: .myBottom))
+    surface: .myBackground,   // the view's own color
+    darkShadow: .myDarkShadow, // the darker edge
+    lightShadow: .myLightShadow, // the lighter edge
+    bottom: .myBottom))       // used for the pressed look
 ```
-Raise a view — it then repaints itself on a light/dark change (iOS 17+) with no further calls:
-```swift
-card.neumorphism(cornerRadius: 16, shadowRadius: 6)
-```
-> **Sizing:** the shadow is built at the view's current size. For a fixed-frame view that's
-> all you need. For a view that changes size — an Auto Layout view, or a control whose title
-> grows with Dynamic Type — keep the shadow matched to the view by calling
-> `resizeNeumorphicShadows()` from the host's `layoutSubviews` / `viewDidLayoutSubviews`:
-> ```swift
-> override func layoutSubviews() {
->     super.layoutSubviews()
->     card.resizeNeumorphicShadows()
-> }
-> ```
-For a tappable control, drive the pressed look from its touch events:
-```swift
-button.addTarget(self, action: #selector(down), for: .touchDown)        // pressDown()
-button.addTarget(self, action: #selector(up), for: .touchUpInside)      // pressUp(settle: true)
-```
-Pass dynamic `UIColor`s (light/dark variants) and dark mode is handled automatically. On
-iOS 15–16 call `refreshNeumorphicShadows()` from the host's `traitCollectionDidChange`.
 
-> Set the palette before any styled view appears — e.g. in `application(_:didFinishLaunchingWithOptions:)`. Xcode previews must call `configure` themselves; the bundled preview shows how.
+Then style any view:
+
+```swift
+card.neumorphism(cornerRadius: 16)
+```
+
+That's it. The view keeps its look correct when the user switches between light
+and dark mode — you don't have to do anything else.
+
+### Buttons
+Add the pressed look by forwarding a button's touch events:
+
+```swift
+button.neumorphism(cornerRadius: 16)
+button.addTarget(self, action: #selector(down), for: .touchDown)
+button.addTarget(self, action: #selector(up), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+```
+
+```swift
+@objc func down(_ sender: UIView) { sender.pressDown() }
+@objc func up(_ sender: UIView)   { sender.pressUp(settle: true) }
+```
+
+### Views that change size
+The look is built at the view's current size. If a view resizes — an Auto Layout
+view, or a button whose title grows — keep the look matched to it:
+
+```swift
+override func layoutSubviews() {
+    super.layoutSubviews()
+    card.resizeNeumorphicShadows()
+}
+```

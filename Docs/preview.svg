@@ -1,0 +1,17 @@
+<svg width="640" height="320" viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Neumorphic raised tile and button illustration">
+  <defs>
+    <filter id="raised" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="9" dy="9" stdDeviation="9" flood-color="#a3b1c6" flood-opacity="0.9"/>
+      <feDropShadow dx="-9" dy="-9" stdDeviation="9" flood-color="#ffffff" flood-opacity="0.9"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="320" rx="0" fill="#e0e5ec"/>
+
+  <!-- Raised tile -->
+  <rect x="70" y="70" width="180" height="180" rx="28" fill="#e0e5ec" filter="url(#raised)"/>
+
+  <!-- Raised pill button -->
+  <rect x="360" y="120" width="210" height="80" rx="40" fill="#e0e5ec" filter="url(#raised)"/>
+  <text x="465" y="168" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="24" font-weight="600" fill="#6b7a90" text-anchor="middle">Button</text>
+</svg>

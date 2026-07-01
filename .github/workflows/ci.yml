@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pick whatever iPhone simulator the runner actually provides, rather than
+      # hard-coding a device name that a future runner image might not ship.
+      - name: Select an available iOS simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -m1 -E 'iPhone' | grep -Eo '[0-9A-F-]{36}')
+          if [ -z "$UDID" ]; then echo "No available iPhone simulator found"; exit 1; fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      # The package targets UIKit, so it must build and test against an iOS
+      # Simulator destination rather than the host macOS toolchain.
+      - name: Build and test (iOS Simulator)
+        run: |
+          xcodebuild test \
+            -scheme NeumorphicUIKit \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}"
