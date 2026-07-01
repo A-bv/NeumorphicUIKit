@@ -104,6 +104,37 @@ struct NeumorphicUIKitTests {
         #expect(lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor)
     }
 
+    @available(iOS 17, *)
+    @Test func appearanceChangeRepaintsShadowsAfterRepeatedRestyle() {
+        // A dark-aware dark-shadow colour: red in light, green in dark.
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white,
+            darkShadow: UIColor { $0.userInterfaceStyle == .dark ? .green : .red },
+            lightShadow: .white,
+            bottom: .black))
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        window.overrideUserInterfaceStyle = .light
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        window.addSubview(view)
+        window.makeKeyAndVisible()
+
+        // Restyle more than once: the trait observer must not stack, and must still fire.
+        view.neumorphism()
+        view.neumorphism()
+        window.layoutIfNeeded()
+
+        func darkShadowColor() -> CGColor? {
+            (view.layer.sublayers ?? []).first { $0.name == "darkShadow" }?.shadowColor
+        }
+        #expect(darkShadowColor() == UIColor.red.cgColor)
+
+        // Flip appearance; the iOS 17 observer should repaint to the dark variant.
+        window.overrideUserInterfaceStyle = .dark
+        window.layoutIfNeeded()
+        #expect(darkShadowColor() == UIColor.green.cgColor)
+    }
+
     @Test func configureStoresTheInjectedPalette() {
         Neumorphism.configure(NeumorphicColors(
             surface: .red, darkShadow: .green, lightShadow: .blue, bottom: .black))

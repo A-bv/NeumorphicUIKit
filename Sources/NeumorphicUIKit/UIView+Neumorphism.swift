@@ -97,6 +97,17 @@ private extension UIView {
         pendingSettle = nil
     }
 
+    // Stable key for the stored trait-change registration, so a restyle can drop the
+    // previous observer instead of stacking a new one on top of it.
+    static let traitRegistrationKey = malloc(1)!
+
+    /// The view's current appearance-change registration, if any. Stored as `Any?` so the
+    /// property needs no iOS 17 availability annotation; callers cast at the use site.
+    var traitRegistration: Any? {
+        get { objc_getAssociatedObject(self, UIView.traitRegistrationKey) }
+        set { objc_setAssociatedObject(self, UIView.traitRegistrationKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
     func applyRestingShadows() {
         let colors = Neumorphism.colors
         for name in ["lightShadow", "darkShadow"] {
@@ -116,7 +127,12 @@ private extension UIView {
     /// the closure runs, so the repaint is correct synchronously — no deferred work needed.
     func observeAppearanceChanges() {
         guard #available(iOS 17, *) else { return }
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in
+        // Re-styling (e.g. a reused cell) must replace the observer, not stack a second
+        // one on top — otherwise a light/dark switch fires the repaint once per restyle.
+        if let previous = traitRegistration as? UITraitChangeRegistration {
+            unregisterForTraitChanges(previous)
+        }
+        traitRegistration = registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in
             view.refreshNeumorphicShadows()
         }
     }
