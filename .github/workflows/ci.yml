@@ -24,8 +24,11 @@ jobs:
 
       # The package targets UIKit, so it must build and test against an iOS
       # Simulator destination rather than the host macOS toolchain.
+      # Warnings are treated as errors so a new deprecation or concurrency
+      # warning fails the build instead of landing silently.
       - name: Build and test (iOS Simulator)
         run: |
           xcodebuild test \
             -scheme NeumorphicUIKit \
-            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}"
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES

@@ -2,10 +2,11 @@ import UIKit
 
 public extension UIView {
     /// Adds the two offset shadow layers that create the neumorphic "raised" look and
-    /// keeps them correct on their own: they repaint automatically on a light/dark change
-    /// (iOS 17+), with no further calls from the host. The shadow keeps the size it's
-    /// created at, so set the view's frame before calling. `cornerRadius` defaults to the
-    /// view's own `layer.cornerRadius`.
+    /// keeps them correct on their own: they repaint automatically on a light/dark change,
+    /// on every supported iOS version, with no further calls from the host. The shadow keeps
+    /// the size it's created at, so set the view's frame before calling. `cornerRadius`
+    /// defaults to the view's own `layer.cornerRadius`. Pass dynamic (light/dark) `UIColor`s
+    /// to ``Neumorphism/configure(_:)`` for the automatic light/dark repaint to be visible.
     func neumorphism(cornerRadius: CGFloat? = nil, shadowRadius: CGFloat = 5) {
         // Re-styling a view (or a reused cell) should replace its shadows, not stack a
         // second pair on top of the first.
@@ -60,8 +61,9 @@ public extension UIView {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 
-    /// Repaints the resting shadows for the current appearance. Happens automatically on
-    /// iOS 17+; on earlier systems call this from the host's `traitCollectionDidChange`.
+    /// Repaints the resting shadows for the current appearance. This happens automatically
+    /// on a light/dark change on every supported iOS version, so calling it directly is
+    /// rarely needed — it's a manual escape hatch for unusual cases.
     func refreshNeumorphicShadows() {
         applyRestingShadows()
     }

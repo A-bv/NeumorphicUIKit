@@ -96,12 +96,22 @@ struct NeumorphicUIKitTests {
 
         view.pressDown()
         view.pressUp(settle: true)
-        // Still pressed right after touch-up...
+        // Still pressed right after touch-up (synchronous, so deterministic).
         #expect(lightFill() == UIColor.gray.resolvedColor(with: view.traitCollection).cgColor)
 
-        // ...and settled to resting once the hold elapses.
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        // ...and settles to resting once the hold elapses. Poll for it instead of racing a
+        // fixed sleep against the 0.2s timer, which is flaky on a loaded CI runner.
+        await waitUntil { lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor }
         #expect(lightFill() == UIColor.white.resolvedColor(with: view.traitCollection).cgColor)
+    }
+
+    /// Yields to the main run loop until `condition` holds or `timeout` elapses, so a queued
+    /// settle work item can fire. Avoids racing a fixed sleep against a real timer.
+    private func waitUntil(timeout: TimeInterval = 2, _ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
     }
 
     @available(iOS 17, *)
@@ -167,6 +177,95 @@ struct NeumorphicUIKitTests {
         window.overrideUserInterfaceStyle = .dark
         window.layoutIfNeeded()
         #expect(darkShadowColor() == UIColor.green.cgColor)
+    }
+
+    @Test func pressDownDuringPendingSettleKeepsThePressedLook() async {
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+        func lightFill() -> CGColor? {
+            (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }?.backgroundColor
+        }
+
+        view.pressDown()
+        view.pressUp(settle: true)   // schedules a settle-to-resting in 0.2s
+        view.pressDown()             // a fresh press must cancel that pending settle
+
+        // Wait well past the original settle window; the stale timer must not fire and flip
+        // the view back to resting mid-press.
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        #expect(lightFill() == UIColor.gray.resolvedColor(with: view.traitCollection).cgColor)
+    }
+
+    @Test func pressDownRecolorsBothLayersInLightMode() {
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        view.neumorphism()
+        let tc = view.traitCollection
+        func layer(_ name: String) -> CALayer? {
+            (view.layer.sublayers ?? []).first { $0.name == name }
+        }
+
+        view.pressDown()
+        // All four pressed-state assignments, not just the light layer's fill.
+        #expect(layer("lightShadow")?.backgroundColor == UIColor.gray.resolvedColor(with: tc).cgColor)
+        #expect(layer("lightShadow")?.shadowColor == UIColor.gray.withAlphaComponent(0.5).resolvedColor(with: tc).cgColor)
+        #expect(layer("darkShadow")?.backgroundColor == UIColor.black.resolvedColor(with: tc).cgColor)
+        #expect(layer("darkShadow")?.shadowColor == UIColor.red.resolvedColor(with: tc).cgColor)
+    }
+
+    @available(iOS 17, *)
+    @Test func pressDownUsesFullStrengthShadowInDarkMode() {
+        Neumorphism.configure(NeumorphicColors(
+            surface: .white, darkShadow: .gray, lightShadow: .red, bottom: .black))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        window.overrideUserInterfaceStyle = .dark
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
+        window.addSubview(view)
+        window.makeKeyAndVisible()
+        view.neumorphism()
+
+        view.pressDown()
+        // In dark mode the light layer's shadow is the full dark-shadow colour, not the
+        // half-alpha variant used in light mode — this exercises the isDark branch.
+        let light = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
+        #expect(light?.shadowColor == UIColor.gray.resolvedColor(with: view.traitCollection).cgColor)
+    }
+
+    @Test func operationsOnAnUnstyledViewAreSafeNoOps() async {
+        let bare = UIView(frame: CGRect(x: 0, y: 0, width: 60, height: 60))
+
+        // None of these were preceded by neumorphism(); all must be harmless no-ops.
+        bare.pressDown()
+        bare.pressUp(settle: true)
+        bare.refreshNeumorphicShadows()
+        bare.resizeNeumorphicShadows(cornerRadius: 10)
+        // Let the scheduled settle work item fire; it must not crash on a view with no shadows.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        let named = (bare.layer.sublayers ?? []).filter {
+            $0.name == "lightShadow" || $0.name == "darkShadow"
+        }
+        #expect(named.isEmpty)
+    }
+
+    @Test func neumorphismAppliesGeometryAndRasterization() {
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        view.layer.cornerRadius = 12          // cornerRadius defaults to the view's own value
+        view.neumorphism(shadowRadius: 7)
+
+        let dark = (view.layer.sublayers ?? []).first { $0.name == "darkShadow" }
+        let light = (view.layer.sublayers ?? []).first { $0.name == "lightShadow" }
+        #expect(dark?.cornerRadius == 12)
+        #expect(light?.cornerRadius == 12)
+        #expect(dark?.shadowRadius == 7)
+        // The two layers cast mirrored offsets — this is what makes the surface look raised.
+        #expect(dark?.shadowOffset == CGSize(width: 7, height: 7))
+        #expect(light?.shadowOffset == CGSize(width: -7, height: -7))
+        #expect(dark?.shouldRasterize == true)
+        #expect(dark?.rasterizationScale == view.traitCollection.displayScale)
     }
 
     @Test func configureStoresTheInjectedPalette() {

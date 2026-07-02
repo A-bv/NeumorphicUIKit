@@ -1,5 +1,6 @@
 # NeumorphicUIKit
 
+[![CI](https://github.com/A-bv/NeumorphicUIKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/NeumorphicUIKit/actions/workflows/ci.yml)
 [![Swift Package Manager](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
 [![Platform](https://img.shields.io/badge/platform-iOS%2015%2B-blue.svg)](https://developer.apple.com/ios/)
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
@@ -8,10 +9,7 @@
 Add a soft, "raised" neumorphic look to any UIKit view — cards, buttons, any
 control — using your own colors.
 
-![Neumorphic raised tile and button](Docs/preview.svg)
-
-> The image is an illustration. Swap in a screenshot from your own app to show
-> it with your palette.
+![NeumorphicUIKit demo: a raised card and a button that presses, with an automatic light/dark switch](Docs/demo.gif)
 
 ## What it does
 - Styles any `UIView`, including buttons and other controls.
@@ -32,7 +30,7 @@ https://github.com/A-bv/NeumorphicUIKit
 Or add it to `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.0.0")
+.package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.2.1")
 ```
 
 ## Usage
@@ -55,6 +53,10 @@ card.neumorphism(cornerRadius: 16)
 That's it. The view keeps its look correct when the user switches between light
 and dark mode — you don't have to do anything else.
 
+For that automatic light/dark switch to show, pass dynamic `UIColor`s — ones
+with light and dark variants (`UIColor { $0.userInterfaceStyle == .dark ? … : … }`
+or a color set in your asset catalog) — to `configure`.
+
 ### Buttons
 Add the pressed look by forwarding a button's touch events:
 
@@ -71,11 +73,12 @@ button.addTarget(self, action: #selector(up), for: [.touchUpInside, .touchUpOuts
 
 ### Views that change size
 The look is built at the view's current size. If a view resizes — an Auto Layout
-view, or a button whose title grows — keep the look matched to it:
+view, or a button whose title grows — keep the look matched to it. From the view
+controller that owns it:
 
 ```swift
-override func layoutSubviews() {
-    super.layoutSubviews()
+override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
     card.resizeNeumorphicShadows()
 }
 ```
