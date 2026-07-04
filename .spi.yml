@@ -1,0 +1,6 @@
+# Configuration for the Swift Package Index (https://swiftpackageindex.com).
+# Tells the index to build and host DocC documentation for the library.
+version: 1
+builder:
+  configs:
+    - documentation_targets: [NeumorphicUIKit]

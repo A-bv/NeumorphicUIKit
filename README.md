@@ -6,79 +6,81 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
-Add a soft, "raised" neumorphic look to any UIKit view — cards, buttons, any
-control — using your own colors.
+Soft, "raised" neumorphic depth for any UIKit view (cards, buttons, any control), using your own colors.
 
-![NeumorphicUIKit demo: a raised card and a button that presses, with an automatic light/dark switch](Docs/demo.gif)
+![NeumorphicUIKit demo: a raised card and a button that presses, following light and dark](Docs/demo.gif)
+
+> The demo above is [`Examples/DemoApp`](Examples/DemoApp).
 
 ## What it does
 - Styles any `UIView`, including buttons and other controls.
 - Uses the colors you give it, so it matches your app.
-- Keeps itself correct when the user switches between light and dark mode.
+- Follows light and dark mode automatically.
 - Has a pressed look for buttons.
 
-## Requirements
-iOS 15+ · Swift 5.9
-
 ## Installation
-In Xcode: **File → Add Package Dependencies…**, then paste:
+In Xcode: **File > Add Package Dependencies…**, then paste:
 
 ```
 https://github.com/A-bv/NeumorphicUIKit
 ```
 
-Or add it to `Package.swift`:
+Or in `Package.swift`:
 
 ```swift
 .package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.2.1")
 ```
 
 ## Usage
-Set your colors once, when the app starts (for example in the app delegate):
+You create the views and buttons yourself. NeumorphicUIKit only adds the raised look on top of them.
+
+**1. Set your colors once, at launch.** These four make up the whole look:
 
 ```swift
 Neumorphism.configure(NeumorphicColors(
-    surface: .myBackground,   // the view's own color
-    darkShadow: .myDarkShadow, // the darker edge
-    lightShadow: .myLightShadow, // the lighter edge
-    bottom: .myBottom))       // used for the pressed look
+    surface: .myBackground,    // the view's fill color
+    darkShadow: .myDarkEdge,   // the darker, shaded corner
+    lightShadow: .myLightEdge, // the lighter, highlighted corner
+    bottom: .myPressedFill))   // the fill shown while a button is pressed
 ```
 
-Then style any view:
+For dark mode, give these colors light and dark variants (an asset-catalog color set is simplest). The look then follows the system on its own, with nothing else to call.
+
+**2. Raise any view you made:**
 
 ```swift
 card.neumorphism(cornerRadius: 16)
 ```
 
-That's it. The view keeps its look correct when the user switches between light
-and dark mode — you don't have to do anything else.
-
-For that automatic light/dark switch to show, pass dynamic `UIColor`s — ones
-with light and dark variants (`UIColor { $0.userInterfaceStyle == .dark ? … : … }`
-or a color set in your asset catalog) — to `configure`.
-
-### Buttons
-Add the pressed look by forwarding a button's touch events:
+**3. For a button, forward its touches** to get the pressed look:
 
 ```swift
 button.neumorphism(cornerRadius: 16)
+
+// Connect the button's touches to the pressed / raised look:
 button.addTarget(self, action: #selector(down), for: .touchDown)
 button.addTarget(self, action: #selector(up), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+
+@objc func down() { button.pressDown() }            // finger down: pressed look
+@objc func up()   { button.pressUp(settle: true) }  // finger up: back to raised
 ```
 
-```swift
-@objc func down(_ sender: UIView) { sender.pressDown() }
-@objc func up(_ sender: UIView)   { sender.pressUp(settle: true) }
+## Layout
 ```
+Package.swift   ┐
+Sources/        │  the package SwiftPM builds and ships
+Tests/          ┘
 
-### Views that change size
-The look is built at the view's current size. If a view resizes — an Auto Layout
-view, or a button whose title grows — keep the look matched to it. From the view
-controller that owns it:
+README.md       ┐
+LICENSE         │  docs and license, at the root by convention
+CHANGELOG.md    ┘
 
-```swift
-override func viewDidLayoutSubviews() {
-    super.viewDidLayoutSubviews()
-    card.resizeNeumorphicShadows()
-}
+Examples/       runnable demo app (the GIF above)
+Docs/           the README GIF
+.github/        CI workflow
+.spi.yml        Swift Package Index config
 ```
+It's a **UIKit** library (no SwiftUI API): it adds shadow layers to views you already have.
+
+## License
+MIT. See [LICENSE](LICENSE).

@@ -70,8 +70,9 @@ public extension UIView {
 
     /// Resizes the shadow layers to the view's current `bounds` (and an optional new
     /// `cornerRadius`). The shadows are otherwise fixed at their creation-time size, so call
-    /// this from the host's `layoutSubviews` for a shadowed view that changes size — e.g. a
-    /// control whose title grows with Dynamic Type. Views that keep their size never need it.
+    /// this from the owner's layout pass — `viewDidLayoutSubviews()` in a view controller, or
+    /// `layoutSubviews()` in a `UIView` subclass — for a shadowed view that changes size, e.g.
+    /// a control whose title grows with Dynamic Type. Views that keep their size never need it.
     func resizeNeumorphicShadows(cornerRadius: CGFloat? = nil) {
         for name in ["lightShadow", "darkShadow"] {
             guard let shadow = sublayer(named: name) else { continue }
