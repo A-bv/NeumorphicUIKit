@@ -25,12 +25,6 @@ In Xcode: **File > Add Package Dependencies…**, then paste:
 https://github.com/A-bv/NeumorphicUIKit
 ```
 
-Or in `Package.swift`:
-
-```swift
-.package(url: "https://github.com/A-bv/NeumorphicUIKit", from: "3.2.1")
-```
-
 ## Usage
 You create the views and buttons yourself. NeumorphicUIKit only adds the raised look on top of them.
 
